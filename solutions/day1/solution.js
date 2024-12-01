@@ -11,8 +11,29 @@ async function run () {
 }
 
 async function solveForFirstStar (input) {
-  const solution = 'UNSOLVED'
-  report('Input:', input)
+  const numberPairs = input.split('\n').map((line) => {
+    return line.split(' ').filter(n => n).map(Number)
+  })
+
+  const leftList = numberPairs.map(([left, right]) => left).sort()
+  const rightList = numberPairs.map(([left, right]) => right).sort()
+
+  report('Left:', leftList)
+  report('Right:', rightList)
+
+  const distances = []
+  while (leftList.length > 0) {
+    const left = leftList.shift()
+    const right = rightList.shift()
+
+    const distance = Math.abs(left - right)
+    report('Pair:', left, right, distance)
+    distances.push(distance)
+  }
+
+  const sumOfDistances = distances.reduce((sum, distance) => sum + distance, 0)
+
+  const solution = sumOfDistances
   report('Solution 1:', solution)
 }
 
