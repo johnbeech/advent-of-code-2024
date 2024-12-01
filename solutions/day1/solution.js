@@ -38,7 +38,21 @@ async function solveForFirstStar (input) {
 }
 
 async function solveForSecondStar (input) {
-  const solution = 'UNSOLVED'
+  const numberPairs = input.split('\n').map((line) => {
+    return line.split(' ').filter(n => n).map(Number)
+  })
+
+  const leftList = numberPairs.map(([left, right]) => left).sort()
+  const rightList = numberPairs.map(([left, right]) => right).sort()
+
+  const similiarityScores = leftList.map((left, index) => {
+    const countInRight = rightList.filter(right => right === left).length
+    return left * countInRight
+  })
+
+  const sumOfSimiliarityScores = similiarityScores.reduce((sum, score) => sum + score, 0)
+
+  const solution = sumOfSimiliarityScores
   report('Solution 2:', solution)
 }
 
