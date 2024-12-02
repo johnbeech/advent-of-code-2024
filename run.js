@@ -10,7 +10,7 @@ const commands = {
       if (!solutionId) {
         console.error('No solution ID provided; please re-run with an argument, e.g.: npm start day1, or: node run day1')
       } else {
-        await copyTemplate()
+        await copyTemplate(solutionId)
       }
     }
   },
