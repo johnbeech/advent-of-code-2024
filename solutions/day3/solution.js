@@ -24,8 +24,44 @@ async function solveForFirstStar (input) {
   report('Solution 1:', solution)
 }
 
+const fnRegex = /(do|don't|mul)\((\d+)?,?(\d+)?\)/g
+
 async function solveForSecondStar (input) {
-  const solution = 'UNSOLVED'
+  const instructions = [...input.matchAll(fnRegex)].map(match => {
+    const [fn, x, y] = match.slice(1)
+    return { fn, x: (x && Number(x)) || 0, y: (y && Number(y)) || 0 }
+  }).filter(({ fn, x, y }) => {
+    if (fn === 'mul') {
+      return x !== undefined && y !== undefined
+    }
+    return true
+  })
+
+  report('Instructions:', instructions)
+
+  const program = []
+  let doEnabled = true
+  while (instructions.length) {
+    const instruction = instructions.shift()
+    if (instruction.fn === 'do') {
+      doEnabled = true
+      program.push(instruction)
+    } else if (instruction.fn === 'don\'t') {
+      doEnabled = false
+      program.push(instruction)
+    } else if (instruction.fn === 'mul') {
+      if (doEnabled) {
+        program.push(instruction)
+      }
+    }
+  }
+
+  report('Program:', program)
+
+  const solution = program
+    .map(({ x, y }) => x * y)
+    .reduce((acc, value) => acc + value, 0)
+
   report('Solution 2:', solution)
 }
 
