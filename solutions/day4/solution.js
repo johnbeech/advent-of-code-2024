@@ -16,15 +16,19 @@ const directions = [
   [-1, 1], [0, 1], [1, 1]
 ]
 
-async function solveForFirstStar (input) {
+function parseInput (input) {
   const letterGrid = input.split('\n').map(line => line.split(''))
-
   const letterMap = letterGrid.reduce((map, line, y) => {
     line.forEach((letter, x) => {
       map[`${x},${y}`] = { letter, x, y }
     })
     return map
   }, {})
+  return { letterGrid, letterMap }
+}
+
+async function solveForFirstStar (input) {
+  const { letterMap } = parseInput(input)
 
   // looking for the word XMAS, find all Xs
   const searchWord = 'XMAS'
@@ -78,7 +82,31 @@ function printGrid (grid) {
 }
 
 async function solveForSecondStar (input) {
-  const solution = 'UNSOLVED'
+  // find A that are surrounded by exactly 2 Ms and 2 Ss in the shape of an X
+  const xDirections = [
+    [-1, -1], [1, -1],
+    [-1, 1], [1, 1]
+  ]
+  const { letterMap } = parseInput(input)
+  const aPoints = Object.values(letterMap).filter(point => point.letter === 'A')
+  const aPointsWithSurroundings = aPoints.filter(point => {
+    return xDirections.every(direction => {
+      const surroundings = xDirections.map(dir => {
+        const x = point.x + dir[0] + direction[0]
+        const y = point.y + dir[1] + direction[1]
+        return letterMap[`${x},${y}`]?.letter
+      })
+      const Ms = surroundings.filter(letter => letter === 'M').length
+      const Ss = surroundings.filter(letter => letter === 'S').length
+      const MsAreNotOpposite = !(surroundings[0] === 'M' && surroundings[3] === 'M') && !(surroundings[1] === 'M' && surroundings[2] === 'M')
+      return Ms === 2 && Ss === 2 && MsAreNotOpposite
+    })
+  })
+
+  const grid = makeGridFromMap(letterMap)
+  printGrid(grid)
+
+  const solution = aPointsWithSurroundings.length
   report('Solution 2:', solution)
 }
 
