@@ -90,21 +90,23 @@ async function solveForSecondStar (input) {
   const { letterMap } = parseInput(input)
   const aPoints = Object.values(letterMap).filter(point => point.letter === 'A')
   const aPointsWithSurroundings = aPoints.filter(point => {
-    return xDirections.every(direction => {
-      const surroundings = xDirections.map(dir => {
-        const x = point.x + dir[0] + direction[0]
-        const y = point.y + dir[1] + direction[1]
-        return letterMap[`${x},${y}`]?.letter
-      })
-      const Ms = surroundings.filter(letter => letter === 'M').length
-      const Ss = surroundings.filter(letter => letter === 'S').length
-      const MsAreNotOpposite = !(surroundings[0] === 'M' && surroundings[3] === 'M') && !(surroundings[1] === 'M' && surroundings[2] === 'M')
-      return Ms === 2 && Ss === 2 && MsAreNotOpposite
+    const surroundings = xDirections.map(dir => {
+      const x = point.x + dir[0]
+      const y = point.y + dir[1]
+      return letterMap[`${x},${y}`]?.letter
     })
+    const Ms = surroundings.filter(letter => letter === 'M').length
+    const Ss = surroundings.filter(letter => letter === 'S').length
+    const MsAreNotOpposite = !(surroundings[0] === 'M' && surroundings[3] === 'M') && !(surroundings[1] === 'M' && surroundings[2] === 'M')
+    const xMASFound = Ms === 2 && Ss === 2 && MsAreNotOpposite
+    if (xMASFound) {
+      console.log(point, 'Ms:', Ms, 'Ss:', Ss, 'surroundings:', surroundings, 'MsAreNotOpposite:', MsAreNotOpposite)
+    }
+    return xMASFound
   })
 
-  const grid = makeGridFromMap(letterMap)
-  printGrid(grid)
+  // const grid = makeGridFromMap(letterMap)
+  // printGrid(grid)
 
   const solution = aPointsWithSurroundings.length
   report('Solution 2:', solution)
