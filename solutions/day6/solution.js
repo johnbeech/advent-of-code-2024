@@ -38,8 +38,11 @@ function walkGrid (grid, guard, onVisit) {
       guard.y = next.y
       guard.neighbors = next.neighbors
       next.visited = true
-      onVisit(next)
       console.log('Moving forward to', next.x, ',', next.y)
+      const exitEarly = onVisit(next)
+      if (exitEarly) {
+        break
+      }
     }
   }
 }
@@ -61,20 +64,27 @@ function createMapFrom (input) {
   return { grid, map }
 }
 
-async function solveForFirstStar (input) {
-  const { grid, map } = createMapFrom(input)
-
+function locateGuard (map) {
   // Find guard ^ facing north
   const guardStartLocation = [...map.values()].find(point => point.char === '^')
-  const guard = {
+  guardStartLocation.visited = true
+  guardStartLocation.visits = {
+    0: 1 // direction: count
+  }
+  return {
     direction: 0,
     ...guardStartLocation
   }
-  guardStartLocation.visited = true
+}
+
+async function solveForFirstStar (input) {
+  const { grid, map } = createMapFrom(input)
+
+  const guard = locateGuard(map)
 
   console.log('Guard:', guard)
-  walkGrid(grid, guard, point => {
-    console.log('Visited', point.x, ',', point.y, 'in direction', guard.direction)
+  walkGrid(grid, guard, location => {
+    console.log('Visited', location.x, ',', location.y, 'in direction', guard.direction)
   })
 
   // Count all visited locations
@@ -85,7 +95,24 @@ async function solveForFirstStar (input) {
 }
 
 async function solveForSecondStar (input) {
-  const solution = 'UNSOLVED'
+  const { grid, map } = createMapFrom(input)
+
+  const guard = locateGuard(map)
+
+  console.log('Guard:', guard)
+  walkGrid(grid, guard, location => {
+    console.log('Visited', location.x, ',', location.y, 'in direction', guard.direction)
+    location.visits = location.visits || {}
+    location.visits[guard.direction] = (location.visits[guard.direction] || 0) + 1
+
+    if (location.visits[guard.direction] > 1) {
+      console.log('Location', location.x, ',', location.y, 'visited', location.visits[guard.direction], 'times in direction', guard.direction)
+      console.log('The guard is probably walking in a loop')
+      return true
+    }
+  })
+
+  const solution = '????'
   report('Solution 2:', solution)
 }
 
