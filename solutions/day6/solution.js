@@ -4,7 +4,7 @@ const fromHere = position(__dirname)
 const report = (...messages) => console.log(`[${require(fromHere('../../package.json')).logName} / ${__dirname.split(path.sep).pop()}]`, ...messages)
 
 async function run () {
-  const input = (await read(fromHere('example.txt'), 'utf8')).trim()
+  const input = (await read(fromHere('input.txt'), 'utf8')).trim()
 
   await solveForFirstStar(input)
   await solveForSecondStar(input)
@@ -16,7 +16,7 @@ const directions = [
   { x: 0, y: 1 }, // South
   { x: -1, y: 0 } // West
 ]
-const directionNames = ['North', 'East', 'South', 'West']
+// const directionNames = ['North', 'East', 'South', 'West']
 
 function walkGrid (grid, guard, onVisit) {
   const mapWidth = grid[0].length
@@ -25,20 +25,20 @@ function walkGrid (grid, guard, onVisit) {
   while (guard.x >= 0 && guard.x < mapWidth && guard.y >= 0 && guard.y < mapHeight) {
     const next = guard.neighbors[guard.direction]
     if (!next) {
-      report('Guard exited the map from', guard.x, ',', guard.y)
+      console.log('Guard exited the map from', guard.x, ',', guard.y)
       break
     } else if (next.char === '#') {
       // Turn right
       guard.direction = (guard.direction + 1) % 4
-      const newDirectionName = directionNames[guard.direction]
-      console.log('Turning right to face', newDirectionName)
+      // const newDirectionName = directionNames[guard.direction]
+      // console.log('Turning right to face', newDirectionName)
     } else {
       // Move forward
       guard.x = next.x
       guard.y = next.y
       guard.neighbors = next.neighbors
       next.visited = true
-      console.log('Moving forward to', next.x, ',', next.y)
+      // console.log('Moving forward to', next.x, ',', next.y)
       const exitEarly = onVisit(next)
       if (exitEarly) {
         break
@@ -90,8 +90,25 @@ async function solveForFirstStar (input) {
   // Count all visited locations
   const visitedLocations = [...map.values()].filter(location => location.visited)
 
+  printGrid(grid, map)
+
   const solution = visitedLocations.length
   report('Solution 1:', solution)
+}
+
+function printGrid (grid, map) {
+  const result = grid.map((line, y) => line.map((char, x) => {
+    const location = map.get(`${x},${y}`)
+    if (location.modified) {
+      return 'O'
+    } else if (location.visited) {
+      return 'x'
+    } else {
+      return char
+    }
+  }).join('')).join('\n')
+
+  console.log(result)
 }
 
 async function solveForSecondStar (input) {
@@ -99,20 +116,67 @@ async function solveForSecondStar (input) {
 
   const guard = locateGuard(map)
 
-  console.log('Guard:', guard)
   walkGrid(grid, guard, location => {
-    console.log('Visited', location.x, ',', location.y, 'in direction', guard.direction)
     location.visits = location.visits || {}
     location.visits[guard.direction] = (location.visits[guard.direction] || 0) + 1
-
-    if (location.visits[guard.direction] > 1) {
-      console.log('Location', location.x, ',', location.y, 'visited', location.visits[guard.direction], 'times in direction', guard.direction)
-      console.log('The guard is probably walking in a loop')
-      return true
-    }
   })
 
-  const solution = '????'
+  // Find collidable locations that could generate a loop
+  const collidableLocations = [...map.values()].filter(location => location.visits && Object.keys(location.visits).length > 0 && location.char === '.')
+
+  // Walk each map and check if the guard is walking in a loop
+  const loopingMaps = []
+
+  let previousLocation
+  while (collidableLocations.length > 0) {
+    const location = collidableLocations.pop()
+    console.log('Checking for loop with changed location', location.x, ',', location.y, '...', collidableLocations.length, 'locations remaining')
+
+    // Reset the map efficiently
+    map.forEach(point => {
+      point.visited = false
+      point.neighbors = directions.map(({ x, y }) => map.get(`${point.x + x},${point.y + y}`))
+      point.visits = {}
+    })
+
+    if (previousLocation) {
+      previousLocation.char = '.'
+    }
+
+    const changedLocation = map.get(`${location.x},${location.y}`)
+    changedLocation.char = '#'
+
+    const guard = locateGuard(map)
+    let loopDetected = false
+    walkGrid(grid, guard, location => {
+      location.visits = location.visits || {}
+      location.visits[guard.direction] = (location.visits[guard.direction] || 0) + 1
+      // console.log('Visiting', location.x, ',', location.y, 'in direction', guard.direction, 'for the', location.visits[guard.direction], 'time')
+
+      if (location.visits[guard.direction] > 1) {
+        console.log('Loop detected at', location.x, ',', location.y)
+        loopDetected = true
+        return true
+      }
+    })
+
+    if (loopDetected) {
+      loopingMaps.push({ map, changedLocation })
+    }
+
+    previousLocation = changedLocation
+  }
+
+  // Mark looping locations in the original map
+  const originalMap = map
+  loopingMaps.forEach(({ map, changedLocation }) => {
+    const location = originalMap.get(`${changedLocation.x},${changedLocation.y}`)
+    location.modified = true
+  })
+
+  printGrid(grid, originalMap)
+
+  const solution = loopingMaps.length
   report('Solution 2:', solution)
 }
 
