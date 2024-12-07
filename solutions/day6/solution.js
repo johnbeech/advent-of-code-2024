@@ -25,7 +25,7 @@ function walkGrid (grid, guard, onVisit) {
   while (guard.x >= 0 && guard.x < mapWidth && guard.y >= 0 && guard.y < mapHeight) {
     const next = guard.neighbors[guard.direction]
     if (!next) {
-      console.log('Guard exited the map from', guard.x, ',', guard.y)
+      // console.log('Guard exited the map from', guard.x, ',', guard.y)
       break
     } else if (next.char === '#') {
       // Turn right
@@ -128,9 +128,13 @@ async function solveForSecondStar (input) {
   const loopingMaps = []
 
   let previousLocation
+  const startTime = Date.now()
   while (collidableLocations.length > 0) {
+    const iterationStart = Date.now()
     const location = collidableLocations.pop()
-    console.log('Checking for loop with changed location', location.x, ',', location.y, '...', collidableLocations.length, 'locations remaining')
+    if (collidableLocations.length % 100 === 0) {
+      console.log('Checking for loop with changed location', location.x, ',', location.y, '...', collidableLocations.length, 'locations remaining')
+    }
 
     // Reset the map efficiently
     map.forEach(point => {
@@ -154,7 +158,7 @@ async function solveForSecondStar (input) {
       // console.log('Visiting', location.x, ',', location.y, 'in direction', guard.direction, 'for the', location.visits[guard.direction], 'time')
 
       if (location.visits[guard.direction] > 1) {
-        console.log('Loop detected at', location.x, ',', location.y)
+        // console.log('Loop detected at', location.x, ',', location.y, '...iterations remaining:', collidableLocations.length)
         loopDetected = true
         return true
       }
@@ -165,7 +169,14 @@ async function solveForSecondStar (input) {
     }
 
     previousLocation = changedLocation
+    const iterationEnd = Date.now()
+    if (collidableLocations.length % 100 === 0) {
+      console.log('Iteration took', iterationEnd - iterationStart, 'ms')
+    }
   }
+
+  const endTime = Date.now()
+  console.log('Loop detection took', endTime - startTime, 'ms')
 
   // Mark looping locations in the original map
   const originalMap = map
