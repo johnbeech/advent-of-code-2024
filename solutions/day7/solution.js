@@ -19,7 +19,7 @@ function parseLine (line) {
   }
 }
 
-function evaluateInstruction (instruction) {
+function evaluateInstruction (instruction, operators = ['+', '*']) {
   // For each value, either multiply or add it to the previous number
   // If a working number exceeds the result, break
   // If the final number matches the result, return true
@@ -34,12 +34,12 @@ function evaluateInstruction (instruction) {
   // [1, '*', 2, '*' 3]
 
   const combinations = []
-  const operators = ['+', '*']
-  const numberOfOperators = numbers.length - 1
-  for (let i = 0; i < 2 ** numberOfOperators; i++) {
+  const numLength = numbers.length - 1
+  // Create the combinations
+  for (let i = 0; i < operators.length ** numLength; i++) {
     const combination = []
-    for (let j = 0; j < numberOfOperators; j++) {
-      const operator = operators[(i >> j) & 1]
+    for (let j = 0; j < numLength; j++) {
+      const operator = operators[Math.floor(i / operators.length ** j) % operators.length]
       combination.push(numbers[j], operator)
     }
     combination.push(numbers[numbers.length - 1])
@@ -58,6 +58,8 @@ function evaluateInstruction (instruction) {
         workingNumber += number
       } else if (operator === '*') {
         workingNumber *= number
+      } else if (operator === '||') {
+        workingNumber = Number(`${workingNumber}${number}`)
       }
       if (workingNumber > result) {
         break
@@ -73,14 +75,18 @@ function evaluateInstruction (instruction) {
 async function solveForFirstStar (input) {
   const instructions = input.split('\n').map(line => parseLine(line))
 
-  const evaluations = instructions.map(evaluateInstruction).filter(Boolean)
+  const evaluations = instructions.map(instruction => evaluateInstruction(instruction, ['*', '+'])).filter(Boolean)
   const solution = evaluations.reduce((sum, evaluation) => sum + evaluation, 0)
 
   report('Solution 1:', solution)
 }
 
 async function solveForSecondStar (input) {
-  const solution = 'UNSOLVED'
+  const instructions = input.split('\n').map(line => parseLine(line))
+
+  const evaluations = instructions.map(instruction => evaluateInstruction(instruction, ['*', '+', '||'])).filter(Boolean)
+  const solution = evaluations.reduce((sum, evaluation) => sum + evaluation, 0)
+
   report('Solution 2:', solution)
 }
 
