@@ -119,6 +119,7 @@ async function solveForSecondStar (input) {
     return antinodes
   }, new Map())
 
+  // Set antinodes at the antennae locations
   antennae.forEach(({ x, y, value }) => {
     antinodes.set(`${x},${y}`, { x, y, value })
   })
