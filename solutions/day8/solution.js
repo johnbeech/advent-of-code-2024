@@ -91,7 +91,41 @@ async function solveForFirstStar (input) {
 }
 
 async function solveForSecondStar (input) {
-  const solution = 'UNSOLVED'
+  const { map, bounds } = parseMap(input)
+  const { antennae, groups, vectors } = findAntennae(map)
+
+  report('Bounds:', bounds)
+  report('Antennae:', antennae)
+  report('Groups', groups)
+  report('Vectors:', vectors)
+
+  // For each vector, generate lines of antinodes and store them in a new map
+  // Map has the same bounds as the original map; so ignore any antinode that is out of bounds
+  const antinodes = vectors.reduce((antinodes, { a, dx, dy }) => {
+    const anode = { x: a.x + dx * 2, y: a.y + dy * 2, value: '#' }
+    const bnode = { x: a.x - dx * 1, y: a.y - dy * 1, value: '#' }
+    // Continue generating anodes until out of bound
+    while (anode.x >= 0 && anode.x < bounds.width && anode.y >= 0 && anode.y < bounds.height) {
+      antinodes.set(`${anode.x},${anode.y}`, { ...anode })
+      anode.x += dx
+      anode.y += dy
+    }
+    // Continue generating bnodes until out of bound
+    while (bnode.x >= 0 && bnode.x < bounds.width && bnode.y >= 0 && bnode.y < bounds.height) {
+      antinodes.set(`${bnode.x},${bnode.y}`, { ...bnode })
+      bnode.x -= dx
+      bnode.y -= dy
+    }
+    return antinodes
+  }, new Map())
+
+  antennae.forEach(({ x, y, value }) => {
+    antinodes.set(`${x},${y}`, { x, y, value })
+  })
+
+  printGridInLayers([map, antinodes], bounds)
+
+  const solution = antinodes.size
   report('Solution 2:', solution)
 }
 
