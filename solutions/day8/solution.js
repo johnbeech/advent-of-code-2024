@@ -20,7 +20,7 @@ function printGridInLayers (maps, bounds) {
   console.log(grid.map(row => row.join('')).join('\n'))
 }
 
-async function solveForFirstStar (input) {
+function parseMap (input) {
   const grid = input.split('\n').map(line => line.split(''))
   // map x,y locations to objects with x,y, and value
   const map = grid.reduce((map, row, y) => {
@@ -35,6 +35,10 @@ async function solveForFirstStar (input) {
     height: grid.length
   }
 
+  return { map, bounds }
+}
+
+function findAntennae (map) {
   const antennae = [...map.values()].filter(({ value }) => value !== '.')
   // Group antennae by their value
   const groups = antennae.reduce((groups, location) => {
@@ -42,9 +46,6 @@ async function solveForFirstStar (input) {
     groups[location.value].push(location)
     return groups
   }, {})
-
-  report('Bounds:', bounds)
-  report('Groups', groups)
 
   // Calculate all vectors between combinations of antennae in each group
   const vectors = Object.values(groups).map(group => {
@@ -60,6 +61,16 @@ async function solveForFirstStar (input) {
     }).flat()
   }).flat()
 
+  return { antennae, groups, vectors }
+}
+
+async function solveForFirstStar (input) {
+  const { map, bounds } = parseMap(input)
+  const { antennae, groups, vectors } = findAntennae(map)
+
+  report('Bounds:', bounds)
+  report('Antennae:', antennae)
+  report('Groups', groups)
   report('Vectors:', vectors)
 
   // For each vector, generate two antinodes and store them in a new map
