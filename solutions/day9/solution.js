@@ -7,7 +7,7 @@ const report = (...messages) => console.log(`[${require(fromHere('../../package.
 const idSymbols = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 async function run () {
-  const input = (await read(fromHere('example.txt'), 'utf8')).trim()
+  const input = (await read(fromHere('input.txt'), 'utf8')).trim()
 
   await solveForFirstStar(input)
   await solveForSecondStar(input)
@@ -83,8 +83,8 @@ async function solveForFirstStar (input) {
   const updatedMapString = createMapString(memory)
   report('Updated map:', updatedMapString)
 
-  const checksums = memory.filter((block) => block.id !== undefined).map((block, index) => {
-    return block.id * index
+  const checksums = memory.map((block, index) => {
+    return block.id !== undefined ? block.id * index : 0
   })
   const checksum = checksums.reduce((acc, val) => acc + val, 0)
   const solution = checksum
@@ -119,6 +119,10 @@ async function solveForSecondStar (input) {
     const block = unmovedBlocks.pop()
     // Find the first free block large enough to hold the block
     const freeBlock = freeBlocks.find((freeBlock) => freeBlock.size >= block.size)
+    // Skip if free block is after the block
+    if (freeBlock !== undefined && remappedBlocks.indexOf(freeBlock) > remappedBlocks.indexOf(block)) {
+      continue
+    }
     if (freeBlock === undefined) {
       report('No free block large enough for block:', block)
       block.unmovedCount = block.unmovedCount === undefined ? 1 : block.unmovedCount + 1
@@ -126,51 +130,58 @@ async function solveForSecondStar (input) {
         report('Giving up on block:', block)
         break
       } else {
-        unmovedBlocks.unshift(block)
+        // unmovedBlocks.unshift(block)
       }
     } else {
-      // Remove the block from the remapped blocks
-      const blockIndex = remappedBlocks.indexOf(block)
-      remappedBlocks.splice(blockIndex, 1)
-      block.moved = true
-
-      // Reduce the size of the free block
+      report('Moving block:', block, 'to free block:', freeBlock)
+      // Create a new block to splice in
+      const newBlock = { ...block, size: block.size }
+      // Find the block index of the free block
+      const freeBlockIndex = remappedBlocks.findIndex((block) => block === freeBlock)
+      // Remove the free block if it is empty
+      if (freeBlock.size === 0) {
+        remappedBlocks.splice(freeBlockIndex, 1)
+      }
+      // Insert the new block before the free block
+      remappedBlocks.splice(freeBlockIndex, 0, newBlock)
+      // Change the size of the free block
       freeBlock.size -= block.size
+      // Change the original block to a free block
+      block.id = undefined
 
-      // Insert an empty free block after the moved block
-      const emptyBlock = { size: block.size }
-      remappedBlocks.splice(blockIndex, 0, emptyBlock)
-
-      // Move the block into the location before the free block
-      const index = remappedBlocks.indexOf(freeBlock)
-      remappedBlocks.splice(index, 0, block)
-
-      // Join adjacent free blocks if possible
-      let nextBlock; let scanIndex = 0
-      do {
-        const currentBlock = remappedBlocks[scanIndex]
-        nextBlock = remappedBlocks[scanIndex + 1]
-        if (currentBlock.id === undefined && nextBlock !== undefined && nextBlock.id === undefined) {
-          currentBlock.size += nextBlock.size
-          remappedBlocks.splice(scanIndex + 1, 1)
+      // Combine free blocks
+      let i = 0
+      while (i < remappedBlocks.length - 1) {
+        const block = remappedBlocks[i]
+        const nextBlock = remappedBlocks[i + 1]
+        if (block.id === undefined && nextBlock.id === undefined) {
+          block.size += nextBlock.size
+          remappedBlocks.splice(i + 1, 1)
         } else {
-          scanIndex++
+          i++
         }
-      } while (nextBlock !== undefined && nextBlock.id === undefined)
+      }
 
+      // Update free blocks
+      freeBlocks.length = 0
+      remappedBlocks.forEach((block) => {
+        if (block.id === undefined) {
+          freeBlocks.push(block)
+        }
+      })
+
+      /*
       const memory = expandBlocksToMemory(remappedBlocks)
       const updatedMapString = createMapString(memory)
       report('Updated map:', updatedMapString)
+      */
     }
   }
 
   // Calculate checksum
-  const checksums = blocks.filter((block) => block.id !== undefined).map((block, index) => {
-    let sum = 0
-    for (let i = 0; i < block.size; i++) {
-      sum += block.id * (index + i)
-    }
-    return sum
+  const memory = expandBlocksToMemory(remappedBlocks)
+  const checksums = memory.map((block, index) => {
+    return block.id !== undefined ? block.id * index : 0
   })
   const checksum = checksums.reduce((acc, val) => acc + val, 0)
   const solution = checksum
