@@ -55,11 +55,7 @@ function printGrid (width, height, cellCallback) {
   }
 }
 
-async function solveForFirstStar (input) {
-  const { topographicMap, width, height } = pathTopographicMap(input)
-
-  report('Topography:', Object.values(topographicMap).length, 'tiles', { width, height })
-
+function findTrails (topographicMap, trackVisits = true) {
   const zeroStarts = Object.values(topographicMap).filter((cell) => cell.value === 0)
 
   report('Zero starts:', zeroStarts.length)
@@ -78,7 +74,7 @@ async function solveForFirstStar (input) {
         console.log('Found path to summit', [start.x, start.y].join(','), [end.x, end.y].join(','), activePath.path.map((cell) => cell.value).join(''))
         pathsFromStart.push(activePath.path)
       } else {
-        const branches = cell.neighbors.filter((neighbor) => neighbor.value === cell.value + 1 && !visited[`${neighbor.x},${neighbor.y}`])
+        const branches = trackVisits ? cell.neighbors.filter((neighbor) => neighbor.value === cell.value + 1 && !visited[`${neighbor.x},${neighbor.y}`]) : cell.neighbors.filter((neighbor) => neighbor.value === cell.value + 1)
         if (branches.length > 0) {
           branches.forEach((branch) => {
             visited[`${branch.x},${branch.y}`] = true
@@ -94,8 +90,10 @@ async function solveForFirstStar (input) {
     return pathsFromStart
   }).filter(Boolean).flat()
 
-  report('Trails:', trails.length)
+  return trails
+}
 
+function findTrailheads (trails) {
   // Find trailheads - locations that start multiple trails from 0
   const trailheads = {}
   trails.forEach((trail) => {
@@ -110,13 +108,47 @@ async function solveForFirstStar (input) {
     }
   })
 
-  // Mark all locations that are part of a path
-  const pathMap = {}
-  trails.forEach((path) => {
-    path.forEach((cell) => {
-      pathMap[`${cell.x},${cell.y}`] = cell
-    })
+  return trailheads
+}
+
+function findTrailheadsAndCountDistinctRoutes (trails) {
+  // Find trailheads - locations that start multiple trails from 0
+  const trailheads = {}
+  trails.forEach((trail) => {
+    if (trail.length > 0) {
+      const trailhead = trailheads[`${trail[0].x},${trail[0].y}`] ?? {
+        count: 0,
+        trails: []
+      }
+      trailhead.count++
+      trailhead.trails.push(trail)
+      trailheads[`${trail[0].x},${trail[0].y}`] = trailhead
+    }
   })
+
+  return trailheads
+}
+
+function markLocations (locations, topographicMap) {
+  const marked = {}
+  locations.forEach((location) => {
+    marked[`${location.x},${location.y}`] = location
+  })
+  return marked
+}
+
+async function solveForFirstStar (input) {
+  const { topographicMap, width, height } = pathTopographicMap(input)
+
+  report('Topography:', Object.values(topographicMap).length, 'tiles', { width, height })
+
+  const trails = findTrails(topographicMap, true)
+  report('Trails:', trails.length)
+
+  const trailheads = findTrailheadsAndCountDistinctRoutes(trails)
+  report('Trailheads:', Object.values(trailheads).length)
+
+  markLocations(Object.values(trailheads), topographicMap)
 
   const solution = Object.values(trailheads).reduce((solution, trailhead) => {
     return solution + trailhead.count
@@ -135,7 +167,33 @@ async function solveForFirstStar (input) {
 }
 
 async function solveForSecondStar (input) {
-  const solution = 'UNSOLVED'
+  const { topographicMap, width, height } = pathTopographicMap(input)
+
+  report('Topography:', Object.values(topographicMap).length, 'tiles', { width, height })
+
+  const trails = findTrails(topographicMap, false)
+  report('Trails:', trails.length)
+
+  const trailheads = findTrailheads(trails)
+  report('Trailheads:', Object.values(trailheads).length)
+
+  // Score trail heads by how many distinct paths they can take to summits
+  Object.values(trailheads).forEach((trailhead) => {
+    trailhead.score = trailhead.trails.length
+  })
+
+  printGrid(width, height, (x, y) => {
+    // const cell = topographicMap[`${x},${y}`]
+    const trailhead = trailheads[`${x},${y}`]
+    if (trailhead) {
+      return trailhead.count
+    }
+    return '.'
+  })
+
+  const solution = Object.values(trailheads).reduce((solution, trailhead) => {
+    return solution + trailhead.score
+  }, 0)
   report('Solution 2:', solution)
 }
 
